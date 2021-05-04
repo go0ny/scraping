@@ -1,0 +1,45 @@
+import requests
+from bs4 import BeautifulSoup as BS
+import pandas as pd
+import re
+
+# La racine est la même pour tout le site, l'iterable slug est l'adresse de la page
+# elle se différencie par l'indice de page en dernier, qui correspondra à la variable i
+url_racine = 'https://cda.chronomania.net/'
+iterable_slug = 'forum.php?order=time&descasc=DESC&category=0&page='
+
+# contenu est une liste de dictionnaires contenant toute la data d'une page unique
+contenu = []   
+
+for i in range(10):
+     
+        
+    try:
+        scraped = BS(requests.get(url_racine+iterable_slug+str(i)).content, 'html.parser')
+        articles = scraped.find_all('ul', class_='thread')
+        
+    except:
+        print('erreur de scraping à la page n° ', i)
+        
+        
+    for article in articles:
+        dico = {}
+        dico['slug'] = article.find('a')['href']
+        dico['name'] = article.find('strong').text
+        try:
+            dico['price'] = re.search("\d+ €", article.find('a').text).group()
+        except:
+            dico['price'] = None
+        dico['user'] = article.find('b').text
+        try:
+            dico['date'] = re.search("\d{2}.\d{2}.\d{4}", article.find('li').text).group()
+        except:
+            dico['date'] = None
+        try:
+            dico['time'] = re.search("\d{2}:\d{2}", article.find('li').text).group()
+        except:
+            dico['time'] = None   
+
+        contenu.append(dico)
+
+df = pd.DataFrame(contenu)
